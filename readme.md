@@ -1,18 +1,48 @@
-Financial Transaction System
+# Financial Transaction System
 
-App divided to 3 applications:
+A high-performance financial transaction system built with FastAPI.
 
-1. Account
-Fetch and display accounts for given client
-* Cached account data
+## Modules
 
-2. Transfers
-* High frequency transactions with low latency
-* Atomicity
-* retries handled
+### Account
+- Fetch client accounts
+- Redis caching for faster access
 
-3. Services
-* Fraud detection service
-* Notification service
-* Ledger service
+### Transfers
+- Money transfers with atomic transactions
+- Balance validation
+- Idempotency to prevent duplicate transfers
 
+### Services
+- Fraud detection
+- Notification
+- Ledger updates
+
+## Running
+
+Requirements:
+- Docker
+- Docker Compose
+
+Start the application:
+
+```bash
+docker compose up --build
+
+API:
+
+http://localhost:8000
+
+Health check:
+
+GET /health
+
+Endpoints
+
+Get accounts:
+
+GET /clients/{client_id}/accounts
+
+Create transfer:
+
+POST /transfers
