@@ -21,5 +21,10 @@ services:
       - postgres
     volumes:
       - .:/app
+  redis:
+    image: redis:7
+    container_name: transferflow-redis
+    ports:
+      - "6379:6379"
 volumes:
   postgres_data:

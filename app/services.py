@@ -1,21 +1,42 @@
+import json
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Account, Client, Transfer, TransferStatusEnum
-
+from app.cache import redis_client
 
 async def get_client_accounts(
     client_id: int,
     db: AsyncSession
 ):
+    cache_key = f"client:{client_id}:accounts"
+    cached = await redis_client.get(cache_key)
+
+    if cached:
+        return json.loads(cached)
+
     result = await db.execute(
         select(Account)
         .where(Account.client_id == client_id)
     )
 
     accounts = result.scalars().all()
+    response = [
+        {
+            "id": account.id,
+            "balance": str(account.balance),
+            "currency": account.currency
+        }
+        for account in accounts
+    ]
 
-    return accounts
+    await redis_client.set(
+        cache_key,
+        json.dumps(response),
+        ex=300
+    )
+
+    return response
 
 
 async def seed_database(db: AsyncSession):
@@ -76,7 +97,7 @@ async def create_transfer(data, idempotency_key: str, db: AsyncSession):
     if existing_transfer:
         return existing_transfer
     
-    
+
     async with db.begin():
         result = await db.execute(
             select(Account)
@@ -120,4 +141,11 @@ async def create_transfer(data, idempotency_key: str, db: AsyncSession):
         db.add(transfer)
     await db.refresh(transfer)
 
+    await redis_client.delete(
+        f"client:{data.from_account_id}:accounts"
+    )
+    await redis_client.delete(
+        f"client:{data.to_account_id}:accounts"
+    )
+    
     return transfer
