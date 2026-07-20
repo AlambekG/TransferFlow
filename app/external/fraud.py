@@ -1,5 +1,5 @@
 import asyncio
 
-async def check_for_fraud():
+async def check_transfer():
     await asyncio.sleep(1)
     ...
