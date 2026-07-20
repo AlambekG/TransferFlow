@@ -14,7 +14,7 @@ from sqlalchemy import (
 
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.dialects.postgresql import UUID
-
+from sqlalchemy.orm import relationship
 
 class Base(DeclarativeBase):
     pass
@@ -45,6 +45,10 @@ class Client(Base):
         TIMESTAMP(timezone=True),
         server_default=func.now()
     )
+    accounts = relationship(
+        "Account",
+        back_populates="client"
+    )
 
 
 class Account(Base):
@@ -72,6 +76,10 @@ class Account(Base):
     created_at = Column(
         TIMESTAMP(timezone=True),
         server_default=func.now()
+    )
+    client = relationship(
+        "Client",
+        back_populates="accounts"
     )
 
 
@@ -113,4 +121,13 @@ class Transfer(Base):
     created_at = Column(
         TIMESTAMP(timezone=True),
         server_default=func.now()
+    )
+    from_account = relationship(
+        "Account",
+        foreign_keys=[from_account_id]
+    )
+
+    to_account = relationship(
+        "Account",
+        foreign_keys=[to_account_id]
     )
