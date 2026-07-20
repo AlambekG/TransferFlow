@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from app.database import get_db
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,16 +17,10 @@ async def get_accounts(client_id: int, db: AsyncSession = Depends(get_db)):
     return accounts
 
 
-@router.post(
-    "/transfers",
-    response_model=TransferResponse
-)
-async def transfer(data: TransferRequest, db: AsyncSession = Depends(get_db)):
+@router.post("/transfers", response_model=TransferResponse)
+async def transfer(data: TransferRequest, idempotency_key: str = Header(..., alias="Idempotency-Key"), db: AsyncSession = Depends(get_db)):
     try:
-        result = await create_transfer(
-            data,
-            db
-        )
+        result = await create_transfer(data, idempotency_key, db)
         return result
 
     except Exception as e:

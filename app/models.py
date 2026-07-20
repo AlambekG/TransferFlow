@@ -40,7 +40,7 @@ class Transfer(Base):
     __tablename__ = "transfers"
 
     id = Column(Integer, primary_key=True)
-    idempotency_key = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    idempotency_key = Column(String(255), unique=True, nullable=False)
     from_account_id = Column(Integer, ForeignKey("accounts.id"),nullable=False)
     to_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
     amount = Column(Numeric(18, 2), nullable=False)
