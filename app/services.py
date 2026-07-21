@@ -86,19 +86,18 @@ async def seed_database(db: AsyncSession):
 
 
 async def create_transfer(data, idempotency_key: str, db: AsyncSession):
-    existing = await db.execute(
-        select(Transfer)
-        .where(
-            Transfer.idempotency_key == idempotency_key
-        )
-    )
-    existing_transfer = existing.scalar_one_or_none()
-
-    if existing_transfer:
-        return existing_transfer
-    
-
     async with db.begin():
+        existing = await db.execute(
+            select(Transfer)
+            .where(
+                Transfer.idempotency_key == idempotency_key
+            )
+        )
+        existing_transfer = existing.scalar_one_or_none()
+
+        if existing_transfer:
+            return existing_transfer
+        
         result = await db.execute(
             select(Account)
             .where(
@@ -133,6 +132,7 @@ async def create_transfer(data, idempotency_key: str, db: AsyncSession):
         receiver.balance += data.amount
 
         transfer = Transfer(
+            idempotency_key=idempotency_key,
             from_account_id=sender.id,
             to_account_id=receiver.id,
             amount=data.amount,

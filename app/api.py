@@ -3,13 +3,21 @@ from app.database import get_db
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas import AccountResponse, TransferRequest, TransferResponse
-from app.services import get_client_accounts, create_transfer
+from app.services import get_client_accounts, create_transfer, seed_database
 
 from app.external.notification import send_notification
 from app.external.ledger import update_ledger
 from app.external.fraud import check_transfer
 
 router = APIRouter()
+
+
+@router.get('/init')
+async def init_seeed(db: AsyncSession = Depends(get_db)):
+    try:
+        await seed_database(db)
+    except Exception as e:
+        raise Exception(f'Seeding failed {e}')
 
 
 @router.get("/clients/{client_id}/accounts", response_model=list[AccountResponse])
