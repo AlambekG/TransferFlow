@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 
@@ -15,3 +16,15 @@ async def client():
         base_url="http://test"
     ) as client:
         yield client
+
+@pytest_asyncio.fixture(autouse=True)
+async def _close_redis():
+    yield
+    await redis_client.connection_pool.disconnect()
+
+@pytest.fixture(scope="session")
+def event_loop():
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+

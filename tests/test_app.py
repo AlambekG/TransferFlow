@@ -105,7 +105,7 @@ async def test_transfer_success(client):
     response = await client.post(
         "/transfers",
         headers={
-            "Idempotency-Key": "test-transfer-1"
+            "Idempotency-Key": "test-transfer-2"
         },
         json={
             "from_account_id": sender_id,
@@ -117,8 +117,7 @@ async def test_transfer_success(client):
     assert response.status_code == 200
 
     data = response.json()
-
-    assert data["status"] == "COMPLETED"
+    assert data["status"] == "completed"
 
 
 @pytest.mark.asyncio

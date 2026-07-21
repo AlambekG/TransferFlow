@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Account, Client, Transfer, TransferStatusEnum
 from app.cache import redis_client
+from decimal import Decimal
 
 async def get_client_accounts(
     client_id: int,
@@ -86,6 +87,10 @@ async def seed_database(db: AsyncSession):
 
 
 async def create_transfer(data, idempotency_key: str, db: AsyncSession):
+    if data.from_account_id == data.to_account_id:
+        raise Exception("Cannot transfer to same account")
+    amount = Decimal(str(data.amount))
+
     async with db.begin():
         existing = await db.execute(
             select(Transfer)
