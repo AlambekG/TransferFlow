@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
 from app.database import get_db
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas import AccountResponse, TransferRequest, TransferResponse
-from app.services import get_client_accounts, create_transfer, seed_database
+from app.schemas.schemas import AccountResponse, TransferRequest, TransferResponse
+from app.services.services import get_client_accounts, create_transfer, seed_database
 
-from app.external.notification import send_notification
-from app.external.ledger import update_ledger
-from app.external.fraud import check_transfer
+from app.services.external.notification import send_notification
+from app.services.external.ledger import update_ledger
+from app.services.external.fraud import check_transfer
 
 router = APIRouter()
 

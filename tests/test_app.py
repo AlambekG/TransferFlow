@@ -2,7 +2,7 @@ import pytest
 from app.cache import redis_client
 
 from app.database import AsyncSessionLocal
-from app.models import Client, Account, Transfer
+from app.models.models import Client, Account, Transfer
 from sqlalchemy import delete
 
 

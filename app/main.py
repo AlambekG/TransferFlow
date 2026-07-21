@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 
 from app.database import engine
-from app.models import Base, Account, Client, Transfer
+from app.models.models import Base, Account, Client, Transfer
 from contextlib import asynccontextmanager
-from app.api import router as apiRouter
+from app.api.api import router as apiRouter
 from app.monitoring import router as monitoringRouter
 
 

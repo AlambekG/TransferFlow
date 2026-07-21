@@ -2,7 +2,7 @@ import json
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Account, Client, Transfer, TransferStatusEnum
+from app.models.models import Account, Client, Transfer, TransferStatusEnum
 from app.cache import redis_client
 from decimal import Decimal
 
