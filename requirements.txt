@@ -8,3 +8,4 @@ redis
 pytest
 pytest-asyncio
 httpx
+greenlet

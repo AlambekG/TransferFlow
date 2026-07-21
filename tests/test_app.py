@@ -1,14 +1,75 @@
 import pytest
+from app.cache import redis_client
 
-@pytest.mark.asyncio
-async def test_something():
-    assert True
+from app.database import AsyncSessionLocal
+from app.models import Client, Account, Transfer
+from sqlalchemy import delete
+
+
+
+async def clear_database():
+    async with AsyncSessionLocal() as session:
+        await session.execute(delete(Transfer))
+        await session.execute(delete(Account))
+        await session.execute(delete(Client))
+        await session.commit()
+
+async def clear_cache():
+    await redis_client.flushdb()
+
+
+async def create_test_accounts():
+    async with AsyncSessionLocal() as db:
+        await db.execute(delete(Transfer))
+        await db.execute(delete(Account))
+        await db.execute(delete(Client))
+        await db.commit()
+
+        sender_client = Client(
+            full_name="Sender",
+            email="sender@test.com"
+        )
+
+        receiver_client = Client(
+            full_name="Receiver",
+            email="receiver@test.com"
+        )
+
+        db.add_all([
+            sender_client,
+            receiver_client
+        ])
+
+        await db.flush()
+
+        sender = Account(
+            client_id=sender_client.id,
+            balance=1000,
+            currency="USD"
+        )
+
+        receiver = Account(
+            client_id=receiver_client.id,
+            balance=500,
+            currency="USD"
+        )
+
+        db.add_all([
+            sender,
+            receiver
+        ])
+
+        await db.commit()
+
+        return sender.id, receiver.id
+
 
 @pytest.mark.asyncio
 async def test_get_accounts(client):
+    sender_id, receiver_id = await create_test_accounts()
 
     response = await client.get(
-        "/clients/1/accounts"
+        f"/clients/{sender_id}/accounts"
     )
 
     assert response.status_code == 200
@@ -21,7 +82,6 @@ async def test_get_accounts(client):
 
 @pytest.mark.asyncio
 async def test_transfer_account_not_found(client):
-
     response = await client.post(
         "/transfers",
         headers={
@@ -40,6 +100,7 @@ async def test_transfer_account_not_found(client):
 
 @pytest.mark.asyncio
 async def test_transfer_success(client):
+    sender_id, receiver_id = await create_test_accounts()
 
     response = await client.post(
         "/transfers",
@@ -47,8 +108,8 @@ async def test_transfer_success(client):
             "Idempotency-Key": "test-transfer-1"
         },
         json={
-            "from_account_id": 1,
-            "to_account_id": 3,
+            "from_account_id": sender_id,
+            "to_account_id": receiver_id,
             "amount": 100
         }
     )
@@ -62,14 +123,14 @@ async def test_transfer_success(client):
 
 @pytest.mark.asyncio
 async def test_transfer_idempotency(client):
-
+    sender_id, receiver_id = await create_test_accounts()
     headers = {
         "Idempotency-Key": "duplicate-test"
     }
 
     payload = {
-        "from_account_id": 1,
-        "to_account_id": 3,
+        "from_account_id": sender_id,
+        "to_account_id": receiver_id,
         "amount": 50
     }
 
@@ -91,15 +152,15 @@ async def test_transfer_idempotency(client):
 
 @pytest.mark.asyncio
 async def test_transfer_insufficient_balance(client):
-
+    sender_id, receiver_id = await create_test_accounts()
     response = await client.post(
         "/transfers",
         headers={
             "Idempotency-Key": "insufficient-balance-test"
         },
         json={
-            "from_account_id": 3,
-            "to_account_id": 1,
+            "from_account_id": sender_id,
+            "to_account_id": receiver_id,
             "amount": 999999
         }
     )
@@ -110,6 +171,7 @@ async def test_transfer_insufficient_balance(client):
 
 @pytest.mark.asyncio
 async def test_transfer_same_account(client):
+    sender_id, receiver_id = await create_test_accounts()
 
     response = await client.post(
         "/transfers",
@@ -117,11 +179,22 @@ async def test_transfer_same_account(client):
             "Idempotency-Key": "same-account-test"
         },
         json={
-            "from_account_id": 1,
-            "to_account_id": 1,
+            "from_account_id": sender_id,
+            "to_account_id": sender_id,
             "amount": 100
         }
     )
 
     assert response.status_code == 400
     assert "Cannot transfer to same account" in response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_accounts_redis_cache(client):
+    sender_id, receiver_id = await create_test_accounts()
+    cache_key = f"client:{sender_id}:accounts"
+    await redis_client.delete(cache_key)
+
+    response = await client.get(f"/clients/{sender_id}/accounts")
+    assert response.status_code == 200
+    cached = await redis_client.get(cache_key)
+    assert cached is not None
