@@ -38,6 +38,9 @@ Health check:
 
 GET /health
 
+Swagger:
+http://localhost:8000/docs
+
 Endpoints
 
 Get accounts:
