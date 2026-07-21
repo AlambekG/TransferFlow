@@ -1,10 +1,15 @@
 import json
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.models import Account, Client, Transfer, TransferStatusEnum
 from app.cache import redis_client
 from decimal import Decimal
+
+
+logger = logging.getLogger(__name__)
 
 async def get_client_accounts(
     client_id: int,
@@ -101,6 +106,13 @@ async def create_transfer(data, idempotency_key: str, db: AsyncSession):
         existing_transfer = existing.scalar_one_or_none()
 
         if existing_transfer:
+            logger.info(
+                "Duplicate transfer request",
+                extra={
+                    "transfer_id": existing_transfer.id,
+                    "idempotency_key": idempotency_key
+                }
+            )
             return existing_transfer
         
         result = await db.execute(
@@ -144,8 +156,18 @@ async def create_transfer(data, idempotency_key: str, db: AsyncSession):
             status=TransferStatusEnum.COMPLETED
         )
         db.add(transfer)
-    await db.refresh(transfer)
 
+    await db.refresh(transfer)
+    logger.info(
+        "Transfer completed",
+        extra={
+            "transfer_id": transfer.id,
+            "from_account": transfer.from_account_id,
+            "to_account": transfer.to_account_id,
+            "amount": str(transfer.amount)
+        }
+    )
+        
     await redis_client.delete(
         f"client:{data.from_account_id}:accounts"
     )

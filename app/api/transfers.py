@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
 from app.database import get_db
 
@@ -10,7 +11,7 @@ from app.services.external.ledger import update_ledger
 from app.services.external.fraud import check_transfer
 
 router = APIRouter()
-
+logger = logging.getLogger(__name__)
 
 @router.post("/transfers", response_model=TransferResponse)
 async def transfer(
@@ -42,6 +43,14 @@ async def transfer(
         return result
 
     except Exception as e:
+        logger.exception(
+            "Transfer failed",
+            extra={
+                "from_account": data.from_account_id,
+                "to_account": data.to_account_id,
+                "amount": str(data.amount)
+            }
+        )
         raise HTTPException(
             status_code=400,
             detail=str(e)

@@ -1,6 +1,9 @@
 import asyncio
+import logging
 from functools import wraps
 
+
+logger = logging.getLogger(__name__)
 
 def retry(retries=3, delay=0.5):
     def decorator(func):
@@ -10,6 +13,13 @@ def retry(retries=3, delay=0.5):
                 try:
                     return await func(*args, **kwargs)
                 except Exception:
+                    logger.warning(
+                        "External service failed, retrying",
+                        extra={
+                            "attempt": attempt + 1,
+                            "service": func.__name__
+                        }
+                    )
                     if attempt == retries - 1:
                         raise
                     await asyncio.sleep(
