@@ -1,5 +1,8 @@
 import asyncio
 
 async def update_ledger(data):
-    await asyncio.sleep(1)
-    ...
+    """ mock ledger function """
+    await asyncio.sleep(0.3)
+    print(
+        f"Ledger updated for transfer {data}"
+    )

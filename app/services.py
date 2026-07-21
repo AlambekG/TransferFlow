@@ -128,19 +128,19 @@ async def create_transfer(data, idempotency_key: str, db: AsyncSession):
             a for a in accounts
             if a.id == data.to_account_id
         )
-        if sender.balance < data.amount:
+        if sender.balance < amount:
             raise Exception(
                 "Insufficient balance"
             )
 
-        sender.balance -= data.amount
-        receiver.balance += data.amount
+        sender.balance -= amount
+        receiver.balance += amount
 
         transfer = Transfer(
             idempotency_key=idempotency_key,
             from_account_id=sender.id,
             to_account_id=receiver.id,
-            amount=data.amount,
+            amount=amount,
             status=TransferStatusEnum.COMPLETED
         )
         db.add(transfer)
