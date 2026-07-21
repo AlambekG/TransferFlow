@@ -3,7 +3,8 @@ from fastapi import FastAPI
 from app.database import engine
 from app.models.models import Base, Account, Client, Transfer
 from contextlib import asynccontextmanager
-from app.api.api import router as apiRouter
+from app.api.accounts import router as accountsRouter
+from app.api.transfers import router as transfersRouter
 from app.monitoring import router as monitoringRouter
 
 
@@ -17,5 +18,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(apiRouter)
+app.include_router(accountsRouter)
+app.include_router(transfersRouter)
 app.include_router(monitoringRouter)

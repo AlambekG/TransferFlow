@@ -2,31 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
 from app.database import get_db
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.schemas import AccountResponse, TransferRequest, TransferResponse
-from app.services.services import get_client_accounts, create_transfer, seed_database
+from app.schemas.schemas import TransferRequest, TransferResponse
+from app.services.services import create_transfer
 
 from app.services.external.notification import send_notification
 from app.services.external.ledger import update_ledger
 from app.services.external.fraud import check_transfer
 
 router = APIRouter()
-
-
-@router.get('/init')
-async def init_seeed(db: AsyncSession = Depends(get_db)):
-    try:
-        await seed_database(db)
-    except Exception as e:
-        raise Exception(f'Seeding failed {e}')
-
-
-@router.get("/clients/{client_id}/accounts", response_model=list[AccountResponse])
-async def get_accounts(client_id: int, db: AsyncSession = Depends(get_db)):
-    accounts = await get_client_accounts(
-        client_id,
-        db
-    )
-    return accounts
 
 
 @router.post("/transfers", response_model=TransferResponse)
