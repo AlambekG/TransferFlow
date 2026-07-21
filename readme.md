@@ -2,6 +2,18 @@
 
 A high-performance financial transaction system built with FastAPI.
 
+
+## Tech Stack
+
+- FastAPI
+- PostgreSQL
+- SQLAlchemy (async)
+- Redis
+- Kafka
+- Docker
+- Pytest
+
+
 ## Modules
 
 ### Account
@@ -10,20 +22,21 @@ A high-performance financial transaction system built with FastAPI.
 
 ### Transfers
 - Money transfers with atomic transactions
+- Row-level locking to prevent race conditions
 - Balance validation
 - Idempotency to prevent duplicate transfers
-- Retries for external service failure
+- Retry mechanism for temporary external service failures
 - Kafka for async processing 
-
-Circuit breaker:
-External services are protected with circuit breakers.
-If fraud/ledger services fail repeatedly, requests are temporarily blocked
-to prevent cascading failures.
 
 ### Services
 - Fraud detection
 - Notification
 - Ledger updates
+
+Circuit breaker:
+External services are protected with circuit breakers.
+If fraud/ledger services fail repeatedly, requests are temporarily blocked
+to prevent cascading failures.
 
 ## Running
 
@@ -58,3 +71,10 @@ GET /clients/{client_id}/accounts
 Create transfer:
 
 POST /transfers
+
+Tests
+
+Run tests:
+```bash
+pytest
+```
