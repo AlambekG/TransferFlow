@@ -12,6 +12,13 @@ A high-performance financial transaction system built with FastAPI.
 - Money transfers with atomic transactions
 - Balance validation
 - Idempotency to prevent duplicate transfers
+- Retries for external service failure
+- Kafka for async processing 
+
+Circuit breaker:
+External services are protected with circuit breakers.
+If fraud/ledger services fail repeatedly, requests are temporarily blocked
+to prevent cascading failures.
 
 ### Services
 - Fraud detection

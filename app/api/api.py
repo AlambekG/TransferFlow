@@ -46,6 +46,12 @@ async def transfer(
             send_notification,
             result.id
         )
+        # await kafka.publish(
+        #     "transfer-events",
+        #     {
+        #         "transfer_id": result.id
+        #     }
+        # )
         background_tasks.add_task(
             update_ledger,
             result.id
