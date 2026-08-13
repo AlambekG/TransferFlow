@@ -33,10 +33,12 @@ A high-performance financial transaction system built with FastAPI.
 - Notification
 - Ledger updates
 
-Circuit breaker:
-External services are protected with circuit breakers.
-If fraud/ledger services fail repeatedly, requests are temporarily blocked
-to prevent cascading failures.
+Circuit breaker / mocks:
+External services (`fraud`, `notification`, `ledger`) are currently implemented as lightweight mocks.
+The codebase contains a `CircuitBreaker` implementation which is used to exercise protection around those mocks; in production these mocks should be replaced with real clients and the breaker tuned appropriately.
+
+Kafka:
+As of this commit Kafka is not enabled (the publish block is commented). Reintroduce Kafka only after defining a message contract and adding integration tests; see `docs/adr/0001-kafka-circuit-breaker.md`.
 
 ## Running
 
