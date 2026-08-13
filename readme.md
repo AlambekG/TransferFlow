@@ -80,3 +80,10 @@ Run tests:
 ```bash
 pytest
 ```
+
+Agent entrypoint
+----------------
+
+If an automated agent or new contributor needs to work on this repository, start from the agent onboarding document which contains a minimal reproducible environment, required smoke checks and a PR handoff template:
+
+- [AGENT_ONBOARDING.md](AGENT_ONBOARDING.md)
