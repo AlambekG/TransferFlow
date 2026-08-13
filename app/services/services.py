@@ -5,7 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.models import Account, Client, Transfer, TransferStatusEnum
-from app.cache import redis_client
+from app.cache import redis_client, CACHE_TTL
+from app.config import settings
 from decimal import Decimal
 
 
@@ -15,7 +16,7 @@ async def get_client_accounts(
     client_id: int,
     db: AsyncSession
 ):
-    cache_key = f"client:{client_id}:accounts"
+    cache_key = f"{settings.cache_prefix}:{client_id}:accounts"
     cached = await redis_client.get(cache_key)
 
     if cached:
@@ -39,7 +40,7 @@ async def get_client_accounts(
     await redis_client.set(
         cache_key,
         json.dumps(response),
-        ex=300
+        ex=CACHE_TTL
     )
 
     return response

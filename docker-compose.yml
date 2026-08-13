@@ -18,7 +18,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/transferflow
+      # Use the async driver URL expected by SQLAlchemy async engine
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/transferflow
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_TTL: "300"
+      RETRY_RETRIES: "3"
+      RETRY_DELAY: "0.5"
+      MOCK_DELAY: "0.3"
     depends_on:
       - postgres
     volumes:
