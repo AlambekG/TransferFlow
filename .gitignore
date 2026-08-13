@@ -31,6 +31,9 @@ pip-delete-this-directory.txt
 .pytest_cache/
 htmlcov/
 coverage.xml
+.mypy_cache/
+.ruff_cache/
+
 
 # Virtual environments
 venv/
@@ -61,6 +64,11 @@ target/
 # build artifacts
 build/
 dist/
+
+# Tool caches
+.cache/
+.tox/
+
 
 # lockfiles created locally
 requirements.lock

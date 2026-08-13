@@ -5,9 +5,9 @@ services:
     image: postgres:16
     container_name: transferflow-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: transferflow
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5433:5432"
     volumes:
@@ -18,14 +18,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Use the async driver URL expected by SQLAlchemy async engine
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/transferflow
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
-      REDIS_TTL: "300"
-      RETRY_RETRIES: "3"
-      RETRY_DELAY: "0.5"
-      MOCK_DELAY: "0.3"
+      # Use environment-driven settings (see .env.example)
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_TTL: ${REDIS_TTL}
+      RETRY_RETRIES: ${RETRY_RETRIES}
+      RETRY_DELAY: ${RETRY_DELAY}
+      MOCK_DELAY: ${MOCK_DELAY}
     depends_on:
       - postgres
     volumes:
