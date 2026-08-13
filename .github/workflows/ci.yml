@@ -40,6 +40,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
 
+      - name: Wait for services (TCP check)
+        run: |
+          python3 - <<'PY'
+          import socket, time
+          hosts = [("postgres", 5432), ("redis", 6379)]
+          deadline = time.time() + 60
+          for host, port in hosts:
+              while True:
+                  try:
+                      with socket.create_connection((host, port), timeout=2):
+                          print(f"{host}:{port} reachable")
+                          break
+                  except Exception:
+                      if time.time() > deadline:
+                          raise SystemExit(f"Timeout waiting for {host}:{port}")
+                      time.sleep(1)
+          PY
+
       - name: Run tests (use service hostnames)
         env:
           # use service container hostnames provided by GitHub Actions
@@ -47,7 +65,6 @@ jobs:
           REDIS_HOST: redis
           REDIS_PORT: 6379
         run: |
-          # run tests without an explicit wait step; use retries in tests if needed
           pytest -q
 
       - name: Build docker image
