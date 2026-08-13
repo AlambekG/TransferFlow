@@ -40,17 +40,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: Wait for services
-        run: |
-          until pg_isready -h localhost -p 5432 -U postgres; do sleep 1; done
-          until redis-cli -h localhost ping | grep -q PONG; do sleep 1; done
-
-      - name: Run tests
+      - name: Run tests (use service hostnames)
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/transferflow
-          REDIS_HOST: localhost
+          # use service container hostnames provided by GitHub Actions
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/transferflow
+          REDIS_HOST: redis
           REDIS_PORT: 6379
-        run: pytest -q
+        run: |
+          # run tests without an explicit wait step; use retries in tests if needed
+          pytest -q
 
       - name: Build docker image
         run: |
