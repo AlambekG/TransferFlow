@@ -6,7 +6,6 @@ WORKDIR /app
 # will prefer those automatically.
 COPY requirements.txt ./
 COPY constraints.txt ./
-COPY requirements.lock ./
 
 # Use lockfile if available, otherwise use constraints, otherwise install runtime deps.
 RUN if [ -f requirements.lock ]; then \
