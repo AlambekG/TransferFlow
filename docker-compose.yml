@@ -1,5 +1,7 @@
 services:
   postgres:
+    # IMPORTANT: pin this image to a verified digest (example: postgres:16@sha256:...)
+    # to ensure reproducible deploys and to avoid mutable tags.
     image: postgres:16
     container_name: transferflow-db
     environment:
@@ -22,6 +24,8 @@ services:
     volumes:
       - .:/app
   redis:
+    # IMPORTANT: pin this image to a verified digest (example: redis:7@sha256:...)
+    # to ensure reproducible deploys and to avoid mutable tags.
     image: redis:7
     container_name: transferflow-redis
     ports:
