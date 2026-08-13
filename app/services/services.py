@@ -8,6 +8,12 @@ from app.models.models import Account, Client, Transfer, TransferStatusEnum
 from app.cache import redis_client, CACHE_TTL
 from app.config import settings
 from decimal import Decimal
+from app.services.errors import (
+    NotFoundError,
+    InsufficientFundsError,
+    SameAccountError,
+    CurrencyMismatchError,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -94,7 +100,7 @@ async def seed_database(db: AsyncSession):
 
 async def create_transfer(data, idempotency_key: str, db: AsyncSession):
     if data.from_account_id == data.to_account_id:
-        raise Exception("Cannot transfer to same account")
+        raise SameAccountError("Cannot transfer to same account")
     amount = Decimal(str(data.amount))
 
     async with db.begin():
@@ -130,9 +136,7 @@ async def create_transfer(data, idempotency_key: str, db: AsyncSession):
         )
         accounts = result.scalars().all()
         if len(accounts) != 2:
-            raise Exception(
-                "Account not found"
-            )
+            raise NotFoundError("Account not found")
         sender = next(
             a for a in accounts
             if a.id == data.from_account_id
@@ -142,12 +146,14 @@ async def create_transfer(data, idempotency_key: str, db: AsyncSession):
             if a.id == data.to_account_id
         )
         if sender.balance < amount:
-            raise Exception(
-                "Insufficient balance"
-            )
+            raise InsufficientFundsError("Insufficient balance")
 
         sender.balance -= amount
         receiver.balance += amount
+
+        # check currency match
+        if sender.currency != receiver.currency:
+            raise CurrencyMismatchError("Currency mismatch")
 
         transfer = Transfer(
             idempotency_key=idempotency_key,
@@ -169,11 +175,7 @@ async def create_transfer(data, idempotency_key: str, db: AsyncSession):
         }
     )
         
-    await redis_client.delete(
-        f"client:{data.from_account_id}:accounts"
-    )
-    await redis_client.delete(
-        f"client:{data.to_account_id}:accounts"
-    )
+    await redis_client.delete(f"{settings.cache_prefix}:{sender.client_id}:accounts")
+    await redis_client.delete(f"{settings.cache_prefix}:{receiver.client_id}:accounts")
     
     return transfer

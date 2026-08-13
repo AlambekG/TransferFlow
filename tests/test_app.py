@@ -62,15 +62,16 @@ async def create_test_accounts():
 
         await db.commit()
 
-        return sender.id, receiver.id
+        return sender_client.id, receiver_client.id, sender.id, receiver.id
 
 
 @pytest.mark.asyncio
 async def test_get_accounts(client):
-    sender_id, receiver_id = await create_test_accounts()
+    client_sender_id, client_receiver_id, sender_account_id, receiver_account_id = await create_test_accounts()
 
     response = await client.get(
-        f"/clients/{sender_id}/accounts"
+        f"/clients/{client_sender_id}/accounts",
+        headers={"X-Client-Id": str(client_sender_id)}
     )
 
     assert response.status_code == 200
@@ -86,7 +87,8 @@ async def test_transfer_account_not_found(client):
     response = await client.post(
         "/transfers",
         headers={
-            "Idempotency-Key": "account-not-found-test"
+            "Idempotency-Key": "account-not-found-test",
+            "X-Client-Id": "1",
         },
         json={
             "from_account_id": 999,
@@ -101,17 +103,18 @@ async def test_transfer_account_not_found(client):
 
 @pytest.mark.asyncio
 async def test_transfer_success(client):
-    sender_id, receiver_id = await create_test_accounts()
+    client_sender_id, client_receiver_id, sender_id, receiver_id = await create_test_accounts()
     # prime cache entries to verify invalidation
-    from_key = f"client:{sender_id}:accounts"
-    to_key = f"client:{receiver_id}:accounts"
+    from_key = f"client:{client_sender_id}:accounts"
+    to_key = f"client:{client_receiver_id}:accounts"
     await redis_client.set(from_key, "x")
     await redis_client.set(to_key, "y")
 
     response = await client.post(
         "/transfers",
         headers={
-            "Idempotency-Key": "test-transfer-2"
+            "Idempotency-Key": "test-transfer-2",
+            "X-Client-Id": str(client_sender_id),
         },
         json={
             "from_account_id": sender_id,
@@ -145,9 +148,10 @@ async def test_transfer_success(client):
 
 @pytest.mark.asyncio
 async def test_transfer_idempotency(client):
-    sender_id, receiver_id = await create_test_accounts()
+    client_sender_id, client_receiver_id, sender_id, receiver_id = await create_test_accounts()
     headers = {
-        "Idempotency-Key": "duplicate-test"
+        "Idempotency-Key": "duplicate-test",
+        "X-Client-Id": str(client_sender_id),
     }
 
     payload = {
@@ -188,11 +192,12 @@ async def test_transfer_idempotency(client):
 
 @pytest.mark.asyncio
 async def test_transfer_insufficient_balance(client):
-    sender_id, receiver_id = await create_test_accounts()
+    client_sender_id, client_receiver_id, sender_id, receiver_id = await create_test_accounts()
     response = await client.post(
         "/transfers",
         headers={
-            "Idempotency-Key": "insufficient-balance-test"
+            "Idempotency-Key": "insufficient-balance-test",
+            "X-Client-Id": str(client_sender_id),
         },
         json={
             "from_account_id": sender_id,
@@ -219,12 +224,13 @@ async def test_transfer_insufficient_balance(client):
 
 @pytest.mark.asyncio
 async def test_transfer_same_account(client):
-    sender_id, receiver_id = await create_test_accounts()
+    client_sender_id, client_receiver_id, sender_id, receiver_id = await create_test_accounts()
 
     response = await client.post(
         "/transfers",
         headers={
-            "Idempotency-Key": "same-account-test"
+            "Idempotency-Key": "same-account-test",
+            "X-Client-Id": str(client_sender_id),
         },
         json={
             "from_account_id": sender_id,
@@ -238,11 +244,11 @@ async def test_transfer_same_account(client):
 
 @pytest.mark.asyncio
 async def test_accounts_redis_cache(client):
-    sender_id, receiver_id = await create_test_accounts()
-    cache_key = f"client:{sender_id}:accounts"
+    client_sender_id, client_receiver_id, sender_id, receiver_id = await create_test_accounts()
+    cache_key = f"client:{client_sender_id}:accounts"
     await redis_client.delete(cache_key)
 
-    response = await client.get(f"/clients/{sender_id}/accounts")
+    response = await client.get(f"/clients/{client_sender_id}/accounts", headers={"X-Client-Id": str(client_sender_id)})
     assert response.status_code == 200
     cached = await redis_client.get(cache_key)
     assert cached is not None
