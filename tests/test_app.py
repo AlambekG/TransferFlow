@@ -1,9 +1,10 @@
 import pytest
+from decimal import Decimal
 from app.cache import redis_client
 
 from app.database import AsyncSessionLocal
 from app.models.models import Client, Account, Transfer
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 
 
@@ -101,6 +102,11 @@ async def test_transfer_account_not_found(client):
 @pytest.mark.asyncio
 async def test_transfer_success(client):
     sender_id, receiver_id = await create_test_accounts()
+    # prime cache entries to verify invalidation
+    from_key = f"client:{sender_id}:accounts"
+    to_key = f"client:{receiver_id}:accounts"
+    await redis_client.set(from_key, "x")
+    await redis_client.set(to_key, "y")
 
     response = await client.post(
         "/transfers",
@@ -118,6 +124,23 @@ async def test_transfer_success(client):
 
     data = response.json()
     assert data["status"] == "completed"
+
+    # verify DB state: balances adjusted and transfer recorded
+    transfer_id = data["id"]
+    async with AsyncSessionLocal() as session:
+        tr = await session.get(Transfer, transfer_id)
+        assert tr is not None
+        assert tr.amount == Decimal("100")
+        assert tr.idempotency_key == "test-transfer-2"
+
+        sender = await session.get(Account, sender_id)
+        receiver = await session.get(Account, receiver_id)
+        assert sender.balance == Decimal("900")
+        assert receiver.balance == Decimal("600")
+
+    # cache keys should be invalidated
+    assert await redis_client.get(from_key) is None
+    assert await redis_client.get(to_key) is None
 
 
 @pytest.mark.asyncio
@@ -148,6 +171,20 @@ async def test_transfer_idempotency(client):
 
 
     assert first.json()["id"] == second.json()["id"]
+    # ensure only one transfer record exists and balances reflect a single deduction
+    async with AsyncSessionLocal() as session:
+        # Query to count transfers with the idempotency key
+        result = await session.execute(
+            select(Transfer).where(Transfer.idempotency_key == "duplicate-test")
+        )
+        transfers = result.scalars().all()
+        assert len(transfers) == 1
+
+        sender = await session.get(Account, sender_id)
+        receiver = await session.get(Account, receiver_id)
+        # initial sender balance 1000, amount 50 -> 950
+        assert sender.balance == Decimal("950")
+        assert receiver.balance == Decimal("550")
 
 @pytest.mark.asyncio
 async def test_transfer_insufficient_balance(client):
@@ -166,6 +203,18 @@ async def test_transfer_insufficient_balance(client):
 
     assert response.status_code == 400
     assert "Insufficient balance" in response.json()["detail"]
+    # ensure no transfer record created and balances unchanged
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Transfer).where(Transfer.idempotency_key == "insufficient-balance-test")
+        )
+        transfers = result.scalars().all()
+        assert len(transfers) == 0
+
+        sender = await session.get(Account, sender_id)
+        receiver = await session.get(Account, receiver_id)
+        assert sender.balance == Decimal("1000")
+        assert receiver.balance == Decimal("500")
 
 
 @pytest.mark.asyncio
